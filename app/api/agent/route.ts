@@ -7,29 +7,48 @@ export async function POST(req: Request) {
 
     const results = await searchChunks(query);
 
-    const context = results.map(r => r.text).join("\n");
+    if (!results.length) {
+      return Response.json({
+        answer: "No relevant sources found in your knowledge base.",
+        sources: []
+      });
+    }
 
-    // 🔥 LLM generation
+    const context = results
+      .slice(0, 3)
+      .map((r: any) => r.text)
+      .join("\n");
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are a PhD research assistant. Answer clearly using provided sources."
+          content: "You are a PhD research assistant. Answer clearly and academically using ONLY provided sources."
         },
         {
           role: "user",
-          content: `Question: ${query}\n\nSources:\n${context}`
+          content: `Question: ${query}
+
+Sources:
+${context}
+
+Answer using ONLY these sources and cite them.`
         }
       ]
     });
 
     return Response.json({
-      answer: response.choices[0].message.content
+      answer: response.choices[0].message.content,
+      sources: results
     });
 
   } catch (error: any) {
     console.error("AGENT ERROR:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+
+    return Response.json({
+      answer: "⚠️ AI failed. Check API key or billing.",
+      sources: []
+    });
   }
 }

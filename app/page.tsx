@@ -11,12 +11,11 @@ export default function Home() {
 
   const search = async () => {
     if (!query.trim()) return;
-
+  
     setLoading(true);
-    setResults([]);
     setAnswer("");
-    setMode("");
-
+    setResults([]);
+  
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -25,26 +24,34 @@ export default function Home() {
         },
         body: JSON.stringify({ query })
       });
-
-      const data = await res.json();
-
-      setMode(data.action);
-
-      if (data.action === "search") {
-        setResults(data.results || []);
+  
+      console.log("STATUS:", res.status);
+  
+      const text = await res.text(); // 🔥 IMPORTANT
+      console.log("RAW RESPONSE:", text);
+  
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("❌ Not JSON response");
+        setAnswer("Server error (not JSON)");
+        return;
       }
-
-      if (data.action === "write") {
-        setAnswer(data.answer || "");
-      }
-
+  
+      console.log("API DATA:", data);
+  
+      setAnswer(data.answer || "No answer");
+      setResults(data.sources || []);
+  
     } catch (err) {
-      console.error(err);
+      console.error("FETCH ERROR:", err);
+      setAnswer("Network error");
     }
-
+  
     setLoading(false);
   };
-
+  
   return (
     <div style={{ maxWidth: 800, margin: "50px auto", fontFamily: "sans-serif" }}>
       
